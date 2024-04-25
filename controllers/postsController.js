@@ -1,4 +1,6 @@
 const PostModel = require("../models/postsModel");
+const LikesModel = require("../models/likesModel");
+const CommentsModel = require("../models/commentsModel");
 
 // exports.getAllposts =  async(req,res,next)=>{
 
@@ -71,3 +73,182 @@ exports.getUserPosts = async (req, res, next) => {
     status: "success",
   });
 };
+
+// Aggregate helps us  to perform a series of operations on a collection's data to transform, group and filter
+// lookup connects collections from is the foreignDB and local field is postDB and as create a new field with the values
+exports.getPosts = async (req, res, next) => {
+  const posts = await PostModel.aggregate([
+    {
+      $lookup: {
+        from: "likes",
+        localField: "_id",
+        foreignField: "recipeId",
+        as: "likes",
+      },
+    },
+    {
+      $addFields: {
+        likesCount: { $size: "$likes" },
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "likes.userId",
+        foreignField: "_id",
+        as: "likedBy",
+      },
+    },
+    {
+      $lookup: {
+        from: "comments",
+        localField: "_id",
+        foreignField: "recipeId",
+        as: "comments"
+      }
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "comments.userId",
+        foreignField: "_id",
+        as: "commentedBy"
+      }
+    },
+    {
+      $project: {
+        title: 1,
+        description: 1,
+        ingredients: 1,
+        instructions: 1,
+        image: 1,
+        chefId: 1,
+        dietType: 1,
+        createdAt: 1,
+        likesCount: 1,
+        likedByNames: "$likedBy.name",
+        comments: "$comments.comment",
+        commentedByNames: "$commentedBy.name"
+      },
+    },
+  ]);
+  res.status(200).json({
+    data: posts,
+  });
+};
+
+// 
+
+exports.createLike = async (req, res, next) => {
+  const { userId, recipeId } = req.body;
+  if (!userId || !recipeId) {
+    return res.status(400).json({
+      message: "userID or recipeID not found",
+    });
+  }
+  const likedPost = await LikesModel.findOne({ userId, recipeId });
+
+  if (likedPost) {
+    await LikesModel.findOneAndDelete({ userId, recipeId });
+    res.json({ message: "Post unliked" });
+  } else {
+    await LikesModel.create(req.body);
+    res.json({ message: "Post liked" });
+  }
+};
+
+exports.getPostLikes = async (req, res, next) => {
+  const recipeId = req.body.recipeId;
+  if (!recipeId) {
+    return res.status(400).json({
+      message: "recipeID not found",
+    });
+  }
+  const likesWithUserNames = await LikesModel.aggregate([
+    {
+      $lookup: {
+        from: "users",
+        localField: "userId",
+        foreignField: "_id",
+        as: "userLiked"
+      }
+    },
+    {
+      $project: {
+        userLikedBy: "$userLiked.name"
+      }
+    }
+  ])
+  const likesCount = likesWithUserNames.length
+  res.status(200).json({
+    data: likesWithUserNames,
+    likesCount
+  });
+};
+
+
+exports.createComment = async(req, res, next) => {
+  const { userId, recipeId, comment } = req.body;
+  if (!userId || !recipeId  || !comment) {
+    return res.status(400).json({
+      message: "userID or recipeID not found",
+    });
+  }
+  const Usercomment = await CommentsModel.create(req.body)
+  res.status(201).json({
+    message: 'comment posted',
+    data: Usercomment
+  })
+}
+
+
+//   {
+//     $lookup: {
+//       from: 'likes',
+//       localField: '_id',
+//       foreignField: 'recipeId'
+//     }
+//   },
+//   {
+//     $addFields: {
+//       likesCount: { $size: '$likes' }
+//     }
+//   },
+//   {
+//     $lookup: {
+//       from: 'users',
+//       localField: 'likes.userId',
+//       foreignField: '_id'
+//     }
+//   },
+//   {
+//     $lookup: {
+//       from: 'comments',
+//       localField: '_id',
+//       foreignField: 'recipeId'
+//     }
+//   },
+//   {
+//     $lookup: {
+//       from: 'users',
+//       localField: 'comments.userId',
+//       foreignField: '_id'
+//     }
+//   },
+//   {
+//     $project: {
+//       title: 1,
+//       description: 1,
+//       ingredients: 1,
+//       instructions: 1,
+//       image: 1,
+//       chefId: 1,
+//       dietType: 1,
+//       createdAt: 1,
+//       likesCount: 1,
+//       likedByNames: '$likedBy.name',
+//       comments: 1,
+//       commentBy: '$commentedBy.name'
+//     }
+//   }
+// ]);

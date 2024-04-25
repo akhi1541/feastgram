@@ -10,5 +10,13 @@ router
   .get(postsController.getPost)
   .patch(postsController.updatePost);
 router.route("/userPosts/:id").get(postsController.getUserPosts);
+router.route("/allposts").get(postsController.getPosts)
+
+
+router.route("/post/like").post(postsController.createLike)
+router.route("/postlikes").get(postsController.getPostLikes) // seperate api to get like count
+
+
+router.route("/post/comment").post(postsController.createComment)
 
 module.exports = router;
