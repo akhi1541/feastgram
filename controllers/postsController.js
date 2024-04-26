@@ -74,6 +74,7 @@ exports.getUserPosts = async (req, res, next) => {
   });
 };
 
+
 // Aggregate helps us  to perform a series of operations on a collection's data to transform, group and filter
 // lookup connects collections from is the foreignDB and local field is postDB and as create a new field with the values
 exports.getPosts = async (req, res, next) => {
@@ -107,6 +108,15 @@ exports.getPosts = async (req, res, next) => {
         as: "comments"
       }
     },
+    // {
+    //   $unwind: "$comments"
+    // },
+    {
+      $unwind: {
+        path: "$comments",
+        preserveNullAndEmptyArrays: true
+      }
+    },
     {
       $lookup: {
         from: "users",
@@ -115,21 +125,38 @@ exports.getPosts = async (req, res, next) => {
         as: "commentedBy"
       }
     },
+    // {
+    //   $unwind: "$commentedBy"
+    // },
     {
-      $project: {
-        title: 1,
-        description: 1,
-        ingredients: 1,
-        instructions: 1,
-        image: 1,
-        chefId: 1,
-        dietType: 1,
-        createdAt: 1,
-        likesCount: 1,
-        likedByNames: "$likedBy.name",
-        comments: "$comments.comment",
-        commentedByNames: "$commentedBy.name"
-      },
+      $unwind: {
+        path: "$commentedBy",
+        preserveNullAndEmptyArrays: true
+      }
+    },
+    {
+      $group: {
+        _id: "$_id",
+        title: { $first: "$title" },
+        description: { $first: "$description" },
+        ingredients: { $first: "$ingredients" },
+        instructions: { $first: "$instructions" },
+        image: { $first: "$image" },
+        chefId: { $first: "$chefId" },
+        dietType: { $first: "$dietType" },
+        createdAt: { $first: "$createdAt" },
+        likesCount: { $first: "$likesCount" },
+        likedByNames: { $first: "$likedBy.name" },
+        comments: {
+          $push: {
+            commentId: "$comments._id",
+            userId: "$comments.userId",
+            recipeId: "$comments.recipeId",
+            comment: "$comments.comment",
+            commentedBy: "$commentedBy.name"
+          }
+        }
+      }
     },
   ]);
   res.status(200).json({
@@ -137,7 +164,11 @@ exports.getPosts = async (req, res, next) => {
   });
 };
 
+
+
 // 
+
+
 
 exports.createLike = async (req, res, next) => {
   const { userId, recipeId } = req.body;
@@ -252,3 +283,6 @@ exports.createComment = async(req, res, next) => {
 //     }
 //   }
 // ]);
+
+
+
