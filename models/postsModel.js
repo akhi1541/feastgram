@@ -1,39 +1,39 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 const recipeSchema = new Schema({
   title: {
     type: String,
-    required: true
+    required: true,
   },
   description: {
-    type: String
+    type: String,
   },
   ingredients: {
-    type: [String]
+    type: [String],
   },
   instructions: {
-    type: String
+    type: String,
   },
   image: {
-    type: String
+    type: String,
   },
   chefId: {
     type: Schema.Types.ObjectId,
-    ref: 'Users', // Assuming you have a User model defined
-    required: true
+    ref: "Users", // Assuming you have a User model defined
+    required: true,
   },
   createdAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
   dietType: {
     type: String,
-    enum: ['VEG', 'NONVEG', 'EGGY'],
-    required: true
+    enum: ["VEG", "NONVEG", "EGGY"],
+    required: true,
   },
 });
 
-const Recipe = mongoose.model('Recipe', recipeSchema);
+const Recipe = mongoose.model("Recipe", recipeSchema);
 
 module.exports = Recipe;

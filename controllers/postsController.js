@@ -74,7 +74,6 @@ exports.getUserPosts = async (req, res, next) => {
   });
 };
 
-
 // Aggregate helps us  to perform a series of operations on a collection's data to transform, group and filter
 // lookup connects collections from is the foreignDB and local field is postDB and as create a new field with the values
 exports.getPosts = async (req, res, next) => {
@@ -95,8 +94,20 @@ exports.getPosts = async (req, res, next) => {
     {
       $lookup: {
         from: "users",
-        localField: "likes.userId",
-        foreignField: "_id",
+        let: { userIds: "$likes.userId" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $in: ["$_id", "$$userIds"] },
+            },
+          },
+          {
+            $project: {
+              _id: 0,
+              name: 1,
+            },
+          },
+        ],
         as: "likedBy",
       },
     },
@@ -105,8 +116,8 @@ exports.getPosts = async (req, res, next) => {
         from: "comments",
         localField: "_id",
         foreignField: "recipeId",
-        as: "comments"
-      }
+        as: "comments",
+      },
     },
     // {
     //   $unwind: "$comments"
@@ -114,30 +125,39 @@ exports.getPosts = async (req, res, next) => {
     {
       $unwind: {
         path: "$comments",
-        preserveNullAndEmptyArrays: true
-      }
+        preserveNullAndEmptyArrays: true,
+      },
     },
     {
       $lookup: {
         from: "users",
         localField: "comments.userId",
         foreignField: "_id",
-        as: "commentedBy"
-      }
+        as: "commentedBy",
+      },
     },
-    // {
-    //   $unwind: "$commentedBy"
-    // },
+    {
+      $lookup: {
+        from: "users",
+        localField: "chefId",
+        foreignField: "_id",
+        as: "postedBy",
+      },
+    },
+    {
+      $unwind: "$postedBy",
+    },
     {
       $unwind: {
         path: "$commentedBy",
-        preserveNullAndEmptyArrays: true
-      }
+        preserveNullAndEmptyArrays: true,
+      },
     },
     {
       $group: {
         _id: "$_id",
         title: { $first: "$title" },
+        name: { $first: "$postedBy.name" },
         description: { $first: "$description" },
         ingredients: { $first: "$ingredients" },
         instructions: { $first: "$instructions" },
@@ -153,22 +173,20 @@ exports.getPosts = async (req, res, next) => {
             userId: "$comments.userId",
             recipeId: "$comments.recipeId",
             comment: "$comments.comment",
-            commentedBy: "$commentedBy.name"
-          }
-        }
-      }
+            commentedBy: "$commentedBy.name",
+          },
+        },
+      },
     },
   ]);
   res.status(200).json({
+    count: posts.length,
     data: posts,
+    status: "success",
   });
 };
 
-
-
-// 
-
-
+//
 
 exports.createLike = async (req, res, next) => {
   const { userId, recipeId } = req.body;
@@ -201,35 +219,32 @@ exports.getPostLikes = async (req, res, next) => {
         from: "users",
         localField: "userId",
         foreignField: "_id",
-        as: "userLiked"
-      }
+        as: "userLiked",
+      },
     },
     {
       $project: {
-        userLikedBy: "$userLiked.name"
-      }
-    }
-  ])
-  const likesCount = likesWithUserNames.length
+        userLikedBy: "$userLiked.name",
+      },
+    },
+  ]);
+  const likesCount = likesWithUserNames.length;
   res.status(200).json({
     data: likesWithUserNames,
-    likesCount
+    likesCount,
   });
 };
 
-
-exports.createComment = async(req, res, next) => {
+exports.createComment = async (req, res, next) => {
   const { userId, recipeId, comment } = req.body;
-  if (!userId || !recipeId  || !comment) {
+  if (!userId || !recipeId || !comment) {
     return res.status(400).json({
       message: "userID or recipeID not found",
     });
   }
-  const Usercomment = await CommentsModel.create(req.body)
+  const Usercomment = await CommentsModel.create(req.body);
   res.status(201).json({
-    message: 'comment posted',
-    data: Usercomment
-  })
-}
-
-
+    message: "comment posted",
+    data: Usercomment,
+  });
+};
