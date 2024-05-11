@@ -23,7 +23,7 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 // Define a route to handle file uploads
-router.post("/upload", upload.single("minion"), (req, res) => {
+router.post("/upload", upload.single("image"), (req, res) => {
   const file = req.file;
   console.log(req.file);
 
