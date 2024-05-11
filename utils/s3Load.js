@@ -30,7 +30,7 @@ router.post("/upload", upload.single("minion"), (req, res) => {
   // Upload file to S3
   const params = {
     Bucket: bucketName,
-    Key: file.originalname,
+    Key: Date.now() + file.originalname,
     Body: file.buffer,
   };
 

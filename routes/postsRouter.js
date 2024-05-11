@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const postsController = require("../controllers/postsController");
-
+const AWS = require('../utils/s3Load')
 // router.route('posts').get()
 router.route("/post").post(postsController.createPost);
 router
