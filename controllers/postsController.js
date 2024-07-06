@@ -4,8 +4,9 @@ const CommentsModel = require("../models/commentsModel");
 const SavedPostModel = require("../models/savedpostsModel");
 const Aws = require("../utils/s3Load");
 const mongoose = require("mongoose");
+const catchAsync = require("../utils/catchAsync");
 
-exports.getPost = async (req, res, next) => {
+exports.getPost = catchAsync(async (req, res, next) => {
   const postId = req.params.id;
 
   if (!postId) {
@@ -13,161 +14,153 @@ exports.getPost = async (req, res, next) => {
       message: "Post ID is not found",
     });
   }
-
-  try {
-    const post = await PostModel.aggregate([
-      {
-        $match: { _id: new mongoose.Types.ObjectId(postId) },
+  const post = await PostModel.aggregate([
+    {
+      $match: { _id: new mongoose.Types.ObjectId(postId) },
+    },
+    {
+      $lookup: {
+        from: "likes",
+        localField: "_id",
+        foreignField: "recipeId",
+        as: "likes",
       },
-      {
-        $lookup: {
-          from: "likes",
-          localField: "_id",
-          foreignField: "recipeId",
-          as: "likes",
-        },
+    },
+    {
+      $addFields: {
+        likesCount: { $size: "$likes" },
       },
-      {
-        $addFields: {
-          likesCount: { $size: "$likes" },
-        },
-      },
-      {
-        $lookup: {
-          from: "users",
-          let: { userIds: "$likes.userId" },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $in: ["$_id", "$$userIds"] },
-              },
+    },
+    {
+      $lookup: {
+        from: "users",
+        let: { userIds: "$likes.userId" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $in: ["$_id", "$$userIds"] },
             },
-            {
-              $project: {
-                _id: 1,
-              },
+          },
+          {
+            $project: {
+              _id: 1,
             },
-          ],
-          as: "likedBy",
-        },
+          },
+        ],
+        as: "likedBy",
       },
-      {
-        $lookup: {
-          from: "comments",
-          localField: "_id",
-          foreignField: "recipeId",
-          as: "comments",
-        },
+    },
+    {
+      $lookup: {
+        from: "comments",
+        localField: "_id",
+        foreignField: "recipeId",
+        as: "comments",
       },
-      {
-        $addFields: {
-          commentsCount: { $size: "$comments" },
-        },
+    },
+    {
+      $addFields: {
+        commentsCount: { $size: "$comments" },
       },
-      {
-        $lookup: {
-          from: "users",
-          localField: "chefId",
-          foreignField: "_id",
-          as: "postedBy",
-        },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "chefId",
+        foreignField: "_id",
+        as: "postedBy",
       },
-      {
-        $unwind: "$postedBy",
+    },
+    {
+      $unwind: "$postedBy",
+    },
+    {
+      $lookup: {
+        from: "savedposts",
+        localField: "_id",
+        foreignField: "recipeId",
+        as: "savedBy",
       },
-      {
-        $lookup: {
-          from: "savedposts",
-          localField: "_id",
-          foreignField: "recipeId",
-          as: "savedBy",
-        },
-      },
-      {
-        $lookup: {
-          from: "users",
-          let: { savedUserIds: "$savedBy.userId" },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $in: ["$_id", "$$savedUserIds"] },
-              },
+    },
+    {
+      $lookup: {
+        from: "users",
+        let: { savedUserIds: "$savedBy.userId" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $in: ["$_id", "$$savedUserIds"] },
             },
-            {
-              $project: {
-                _id: 1,
-              },
+          },
+          {
+            $project: {
+              _id: 1,
             },
-          ],
-          as: "savedByUsers",
-        },
+          },
+        ],
+        as: "savedByUsers",
       },
-      {
-        $project: {
-          _id: 1,
-          title: 1,
-          name: "$postedBy.name",
-          description: 1,
-          ingredients: 1,
-          instructions: 1,
-          image: 1,
-          chefId: 1,
-          dietType: 1,
-          createdAt: 1,
-          likesCount: 1,
-          likedBy: 1,
-          commentsCount: 1,
-          savedByUsers: 1,
-        },
+    },
+    {
+      $project: {
+        _id: 1,
+        title: 1,
+        name: "$postedBy.name",
+        description: 1,
+        ingredients: 1,
+        instructions: 1,
+        image: 1,
+        chefId: 1,
+        dietType: 1,
+        createdAt: 1,
+        likesCount: 1,
+        likedBy: 1,
+        commentsCount: 1,
+        savedByUsers: 1,
       },
-    ]);
+    },
+  ]);
 
-    console.log(post[0]?.savedByUsers); 
+  console.log(post[0]?.savedByUsers);
 
-    if (!post || post.length === 0) {
-      return res.status(404).json({
-        message: "Post not found",
-      });
-    }
-
-    res.status(200).json({
-      data: post[0],
-      status: "success",
-    });
-  } catch (error) {
-    console.error("Error fetching post:", error);
-    res.status(500).json({
-      message: "Failed to fetch post",
-      error: error.message,
+  if (!post || post.length === 0) {
+    return res.status(404).json({
+      message: "Post not found",
     });
   }
-};
 
+  res.status(200).json({
+    data: post[0],
+    status: "success",
+  });
 
+  
+  
+});
 
+exports.createPost = catchAsync(async (req, res) => {
 
-exports.createPost = async (req, res) => {
-  try {
-    console.log(req.body)
-    const { title, image,chefId } = req.body;
+    console.log(req.body);
+    const { title, image, chefId } = req.body;
     const recipeData = JSON.parse(title);
-    console.log(recipeData)
+    console.log(recipeData);
     console.log(image);
-    const createdPost = await PostModel.create({ ...recipeData, image, chefId });
+    const createdPost = await PostModel.create({
+      ...recipeData,
+      image,
+      chefId,
+    });
     res.status(201).json({
       data: createdPost,
       message: "Post created",
       status: "success",
     });
-  } catch (error) {
-    res.status(500).json({
-      message: "Error creating post",
-      error: error.message,
-    });
-  }
-};
 
-exports.updatePost = async (req, res, next) => {
+    
+
+});
+
+exports.updatePost = catchAsync(async (req, res, next) => {
   const id = req.params.id;
   if (!id) {
     return res.status(400).json({
@@ -179,9 +172,9 @@ exports.updatePost = async (req, res, next) => {
     data: userPost,
     status: "success",
   });
-};
+});
 
-exports.deletePost = async (req, res, next) => {
+exports.deletePost = catchAsync(async (req, res, next) => {
   const id = req.params.id;
   if (!id) {
     return res.status(400).json({
@@ -193,29 +186,29 @@ exports.deletePost = async (req, res, next) => {
     data: userPost,
     status: "success",
   });
-};
+});
 
-exports.getUserPosts = async (req, res, next) => {
+exports.getUserPosts = catchAsync(async (req, res, next) => {
   const id = req.params.id;
-  console.log(id)
+  console.log(id);
   if (!id) {
     return res.status(400).json({
       message: "userID is not found",
     });
   }
-  const userPosts = await PostModel.find({ chefId: id }).select('_id image');
+  const userPosts = await PostModel.find({ chefId: id }).select("_id image");
   res.status(200).json({
     data: userPosts,
     status: "success",
   });
-};
+});
 
 // Aggregate helps us  to perform a series of operations on a collection's data to transform, group and filter
 // lookup connects collections from is the foreignDB and local field is postDB and as create a new field with the values
 
-exports.getPosts = async (req, res, next) => {
-  const page = parseInt(req.query.page) || 1; 
-  const limit =  10; 
+exports.getPosts = catchAsync(async (req, res, next) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
   const skip = (page - 1) * limit;
 
   const posts = await PostModel.aggregate([
@@ -291,14 +284,14 @@ exports.getPosts = async (req, res, next) => {
         createdAt: { $first: "$createdAt" },
         likesCount: { $first: "$likesCount" },
         likedByIds: { $first: "$likedBy._id" },
-        commentsCount: { $first: "$commentsCount" }
+        commentsCount: { $first: "$commentsCount" },
       },
     },
     { $skip: skip },
-    { $limit: limit }
+    { $limit: limit },
   ]);
 
-  const totalPosts = await PostModel.countDocuments()
+  const totalPosts = await PostModel.countDocuments();
 
   res.status(200).json({
     count: posts.length,
@@ -308,12 +301,11 @@ exports.getPosts = async (req, res, next) => {
     data: posts,
     status: "success",
   });
-};
-
+});
 
 //
 
-exports.createLike = async (req, res, next) => {
+exports.createLike = catchAsync(async (req, res, next) => {
   const { userId, recipeId } = req.body;
   if (!userId || !recipeId) {
     return res.status(400).json({
@@ -329,53 +321,52 @@ exports.createLike = async (req, res, next) => {
     await LikesModel.create(req.body);
     res.json({ message: "Post liked", status: true });
   }
-};
+});
 
-exports.getPostLikes = async (req, res, next) => {
+exports.getPostLikes = catchAsync(async (req, res, next) => {
   const recipeId = req.params.id;
   if (!recipeId) {
     return res.status(400).json({
       message: "recipeID not found",
     });
   }
-    const likesWithUserNames = await LikesModel.aggregate([
-      {
-        $match: { recipeId: new mongoose.Types.ObjectId(recipeId) }, 
+  const likesWithUserNames = await LikesModel.aggregate([
+    {
+      $match: { recipeId: new mongoose.Types.ObjectId(recipeId) },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "userId",
+        foreignField: "_id",
+        as: "userLiked",
       },
-      {
-        $lookup: {
-          from: "users",
-          localField: "userId",
-          foreignField: "_id",
-          as: "userLiked",
+    },
+    {
+      $unwind: "$userLiked",
+    },
+    {
+      $project: {
+        _id: 1, // Include the original _id from LikesModel
+        userLikedBy: {
+          _id: "$userLiked._id",
+          name: "$userLiked.name",
+          profilePicture: "$userLiked.profilePicture",
         },
       },
-      {
-        $unwind: "$userLiked",
-      },
-      {
-        $project: {
-          _id: 1, // Include the original _id from LikesModel
-          userLikedBy: {
-            _id: "$userLiked._id",
-            name: "$userLiked.name",
-            profilePicture: "$userLiked.profilePicture"
-          }
-        },
-      }
-    ]);
-    
-    const likesCount = likesWithUserNames.length;
-    console.log(likesWithUserNames);
-    
-    res.status(200).json({
-      data: likesWithUserNames,
-      likesCount,
-    });
-    
-};
+    },
+  ]);
 
-exports.createComment = async (req, res, next) => {
+  const likesCount = likesWithUserNames.length;
+  console.log(likesWithUserNames);
+
+  res.status(200).json({
+    data: likesWithUserNames,
+    likesCount,
+  });
+});
+
+exports.createComment = catchAsync(async (req, res, next) => {
   const { userId, recipeId, comment } = req.body;
   if (!userId || !recipeId || !comment) {
     return res.status(400).json({
@@ -387,13 +378,12 @@ exports.createComment = async (req, res, next) => {
     message: "comment posted",
     data: Usercomment,
   });
-};
-exports.getComments = async (req, res) => {
+});
+exports.getComments = catchAsync(async (req, res) => {
   const recipeId = req.params.recipeID;
-  try {
     const comments = await CommentsModel.aggregate([
       {
-        $match: { recipeId: new mongoose.Types.ObjectId(recipeId) }, 
+        $match: { recipeId: new mongoose.Types.ObjectId(recipeId) },
       },
       {
         $lookup: {
@@ -404,7 +394,7 @@ exports.getComments = async (req, res) => {
         },
       },
       {
-        $unwind: "$userData", 
+        $unwind: "$userData",
       },
       {
         $project: {
@@ -412,7 +402,7 @@ exports.getComments = async (req, res) => {
           comment: 1, // Include the comment's text
           user: "$userData.name", // Include the user data
           profilePicture: "$userData.profilePicture", // Include the user data
-          createdAt: 1
+          createdAt: 1,
         },
       },
     ]);
@@ -420,13 +410,11 @@ exports.getComments = async (req, res) => {
       data: comments,
       status: "success",
     });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: err.message, status: "error" });
-  }
-};
 
-exports.savePost = async (req, res) => {
+    
+});
+
+exports.savePost = catchAsync(async (req, res) => {
   const { userId, recipeId } = req.body;
   let message = "";
   if (!userId || !recipeId)
@@ -445,9 +433,9 @@ exports.savePost = async (req, res) => {
     statusBool,
     message,
   });
-};
+});
 
-exports.getSavedPosts = async (req, res) => {
+exports.getSavedPosts = catchAsync(async (req, res) => {
   const id = req.params.id;
   if (!id) {
     console.log("entered into if");
@@ -489,29 +477,23 @@ exports.getSavedPosts = async (req, res) => {
     data: savedPosts,
     message: "Saved posts retrieved successfully",
   });
-};
+});
 
-exports.getUserSavedPosts = async (req, res) => {
+exports.getUserSavedPosts = catchAsync(async (req, res) => {
   const userId = req.params.userId;
 
-  try {
-    const savedPosts = await SavedPostModel.find({ userId })
-      .populate({
-        path: 'recipeId',
-        select: { _id: 1, image: 1 } // Select only _id and image from recipeId
-      });
-      console.log(savedPosts);
+
+    const savedPosts = await SavedPostModel.find({ userId }).populate({
+      path: "recipeId",
+      select: { _id: 1, image: 1 }, // Select only _id and image from recipeId
+    });
+    console.log(savedPosts);
 
     res.status(200).json({
       data: savedPosts,
       status: "success",
     });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error fetching saved posts" });
-  }
-};
 
+    
 
-
-
+});
