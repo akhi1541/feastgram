@@ -2,6 +2,8 @@ const Users = require("../models/usersModel");
 const jwt = require("jsonwebtoken");
 const { promisify } = require("util");
 const crypto = require("crypto");
+const catchAsync = require('../utils/catchAsync')
+const AppError = require('../utils/appError')
 const oAuthLogin = false;
 
 const loginTo = (id) => {
@@ -10,19 +12,19 @@ const loginTo = (id) => {
   });
 };
 
-const createSendToken = (user, statusCode, message, res) => {
+const createSendToken =  (user, statusCode, message, res) => {
   //*cookie is just a piece of txt which is sent from server to client which client stores it and sends it  back to the server for (like jwt to get acess) all future reqs
 
   const token = loginTo(user.id);
 
-  const cookieOptions = {
-    expires: new Date(
-      Date.now() + process.env.JWT_EXPIRES_IN * 24 * 60 * 60 * 1000
-    ),
-    httpOnly: true,
-  };
-  if (process.env.NODE_ENV === "production") cookieOptions.secure = true;
-  res.cookie("jwt", token, cookieOptions);
+  // const cookieOptions = {
+  //   expires: new Date(
+  //     Date.now() + process.env.JWT_EXPIRES_IN * 24 * 60 * 60 * 1000
+  //   ),
+  //   httpOnly: true,
+  // };
+  // if (process.env.NODE_ENV === "production") cookieOptions.secure = true;
+  // res.cookie("jwt", token, cookieOptions);
   user.password = undefined;
   res.status(statusCode).json({
     status: "sucess",
@@ -32,8 +34,8 @@ const createSendToken = (user, statusCode, message, res) => {
   });
 };
 
-exports.signUpController = async (req, res, next) => {
-  try {
+exports.signUpController = catchAsync(async (req, res, next) => {
+
     const newUser = await Users.create({
       name: req.body.name,
       email: req.body.email,
@@ -48,34 +50,28 @@ exports.signUpController = async (req, res, next) => {
         .json({ message: err.message , status: "failed" });
     });
     createSendToken(newUser, 200, "user created sucesfully", res);
-  } catch (error) {
-    console.log("error", error);
-  }
-};
+  
+});
 
-exports.login = async (req, res, next) => {
+exports.login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
   //*1 check if email password exists
   if (!email || !password) {
     console.log('"please provide email and password"');
-    return res.status(400).json({
-      message: "please provide email and password",
-    });
+    return next(new AppError(400, 'please provide email and password'));
     // return next(new AppError(400, "please provide email and password"));
   }
   //*2 check  if user  exists  in database and password is correct
   const user = await Users.findOne({ email }).select("+password");
   if (!user || !(await user.correctPassword(password, user.password))) {
-    // return next(new AppError(400, "Incorrect email or password"));
-    return res.status(400).json({
-      message: "please provide email and password",
-    });
+    console.log('"please wreo"');
+    return next(new AppError(400, "Incorrect email or password"));
   }
   //*3 if everything is of generate the token and send it to the client
   createSendToken(user, 200, "login sucessful", res);
-};
+});
 
-exports.protect = async (req, res, next) => {
+exports.protect = catchAsync(async (req, res, next) => {
   let token;
   //1.check token n if its there
   if (req.headers.jwt && req.headers.jwt.startsWith("Bearer")) {
@@ -126,13 +122,13 @@ exports.protect = async (req, res, next) => {
   //5.grant acess
   req.user = currentUser;
   next();
-};
+});
 
-exports.getProfileInfo = async (req, res) => {
-  try {
+exports.getProfileInfo = catchAsync(async (req, res) => {
+
     const id = req.params.id;
     const details = await Users.findById(id).select(
-      "_id profilePicture email name"
+      "_id profilePicture email name bio"
     );
 
     if (!details) {
@@ -140,16 +136,13 @@ exports.getProfileInfo = async (req, res) => {
     }
 
     res.status(200).json({ status: "success", data: details });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
 
-exports.updateProfile = async (req, res) => {
-  try {
+});
+
+exports.updateProfile = catchAsync(async (req, res) => {
+
     console.log(req.body);
-    const { name, email } = req.body;
+    const { name, email,bio } = req.body;
     const userId = req.params.userId;
     const image = req.body.image;
     console.log(userId);
@@ -158,6 +151,7 @@ exports.updateProfile = async (req, res) => {
       name,
       email,
       profilePicture: image,
+      bio
     };
 
     const user = await Users.findOneAndUpdate(
@@ -177,11 +171,5 @@ exports.updateProfile = async (req, res) => {
       data: user,
       status: "success",
     });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      status: "error",
-      message: "An error occurred while updating the profile",
-    });
-  }
-};
+  
+});
