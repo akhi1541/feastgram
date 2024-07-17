@@ -33,6 +33,10 @@ const userSchema = new mongoose.Schema({
       message: "Invalid email",
     },
   },
+  mailVerified:{
+    type:Boolean,
+    default:false
+  },
   role: {
     type: String,
     enum: ["admin", "user"],
