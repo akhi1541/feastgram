@@ -9,8 +9,11 @@ router.get("/", (req, res) => {
 
 router.post("/signup", authController.signUpController);
 router.post("/login", authController.login);
+router.post('/forgetPassword', authController.forgetPassword);
+router.post('/resetPassword', authController.resetPassword);
 
-
+// router.get('/mailVerification/:userId',authContorller.emailVerification)
+router.get("/mailVerification/:userId",authController.emailVerification)
 router.get(
   "/getAllFrnds/:id",
   authController.protect,
