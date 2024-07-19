@@ -6,6 +6,7 @@ app.use(cors());
 
 const userRouter = require("./routes/usersRouter");
 const postsRouter = require("./routes/postsRouter");
+const chatsRouter = require("./routes/chatsRouter");
 const socketInit = require("./utils/socket")
 
 const AppError = require("./utils/appError");
@@ -20,6 +21,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/posts", postsRouter);
+app.use("/api/v1/chats", chatsRouter);
 socketInit()
 
 

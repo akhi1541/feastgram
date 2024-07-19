@@ -9,6 +9,7 @@ const io = socketIo(server, {
   },
 });
 const ChatModel = require("../models/chatModel");
+const UsersModel = require("../models/usersModel");
 const catchAsync = require("./catchAsync");
 const AppError = require("./appError");
 const userSocketMap = new Map();
@@ -41,18 +42,36 @@ function socketInit() {
       try {
         console.log("Private message received:", msg);
         const { receiverId, senderId, message, timeStamp } = msg;
-        const createdPrivateMessage = await ChatModel.create(msg);
+        const receiver = await UsersModel.findById(receiverId).select('name profilePicture');
+        const sender = await UsersModel.findById(senderId).select('name profilePicture');
+
+        let createdPrivateMessage = await ChatModel.create(msg);
         console.log("Saved private message:", createdPrivateMessage);
+        
+        createdPrivateMessage = {
+          senderId: {
+            id: sender._id,
+            name: sender.name,
+            profilePicture: sender.profilePicture
+          },
+          receiverId: {
+            id: receiver._id,
+            name: receiver.name,
+            profilePicture: receiver.profilePicture
+          },
+          message: createdPrivateMessage.message,
+          timeStamp: createdPrivateMessage.timeStamp,
+        };
+
+        console.log(createdPrivateMessage)
 
         const receiverSocketId = userSocketMap.get(receiverId);
         const senderSocketId = userSocketMap.get(senderId)
         console.log("fasdhi", userSocketMap);
 
-        if (receiverSocketId) {
-          io.to(receiverSocketId).to(senderSocketId).emit("receivePrivate", createdPrivateMessage);
-        } else {
-          console.error(`Receiver ID ${receiverId} not found in userSocketMap`);
-        }
+        
+        io.to(receiverSocketId).to(senderSocketId).emit("receivePrivate", createdPrivateMessage);
+        
 
         // io.emit("receivePrivate", createdPrivateMessage); // Optionally send back to sender
       } catch (error) {
