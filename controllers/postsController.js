@@ -2,6 +2,7 @@ const PostModel = require("../models/postsModel");
 const LikesModel = require("../models/likesModel");
 const CommentsModel = require("../models/commentsModel");
 const SavedPostModel = require("../models/savedpostsModel");
+const UserModel = require("../models/usersModel")
 const Aws = require("../utils/s3Load");
 const mongoose = require("mongoose");
 const catchAsync = require("../utils/catchAsync");
@@ -176,12 +177,15 @@ exports.updatePost = catchAsync(async (req, res, next) => {
 
 exports.deletePost = catchAsync(async (req, res, next) => {
   const id = req.params.id;
+  console.log(id)
   if (!id) {
     return res.status(400).json({
       message: "userID is not found",
     });
   }
+  
   const userPost = await PostModel.findByIdAndDelete({ _id: id });
+  console.log(userPost)
   res.status(200).json({
     data: userPost,
     status: "success",
@@ -497,3 +501,15 @@ exports.getUserSavedPosts = catchAsync(async (req, res) => {
     
 
 });
+
+
+exports.getUserDetails = catchAsync(async (req, res) => {
+  const name = req.params.name;
+  console.log(name)
+  const usersData = await UserModel.find(
+    { name: { $regex: name, $options: 'i' } },
+    '_id name profilePicture' // Project only _id and name fields
+  );
+  console.log('regw',usersData)
+  res.json(usersData);
+})
