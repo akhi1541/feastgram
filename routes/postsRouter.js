@@ -6,7 +6,7 @@ const uploadToS3Middleware = require("../utils/s3Load");
 
 // router.post("/upload", uploadToS3Middleware, (req, res,next) => {
 //   // The file has been uploaded to S3, and req.body.image contains the S3 URL
-//   console.log(req.body);
+//   //console.log(req.body);
 //   res.json({ imageUrl: req.body.image });
 //   next()
 // });

@@ -63,7 +63,7 @@ exports.signUpController = catchAsync(async (req, res, next) => {
 exports.login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
   if (!email || !password) {
-    console.log('"please provide email and password"');
+    //console.log('"please provide email and password"');
     return next(new AppError(400, "please provide email and password"));
   }
   //*2 check  if user  exists  in database and password is correct
@@ -142,11 +142,11 @@ exports.getProfileInfo = catchAsync(async (req, res) => {
 });
 
 exports.updateProfile = catchAsync(async (req, res) => {
-  console.log(req.body);
+  //console.log(req.body);
   const { name, email, bio } = req.body;
   const userId = req.params.userId;
   const image = req.body.image;
-  console.log(userId);
+  //console.log(userId);
 
   const updatedProfile = {
     name,
@@ -181,7 +181,7 @@ exports.emailVerification = catchAsync(async (req, res, next) => {
     { mailVerified: true },
     { new: true }
   );
-  console.log("Updated User: ", user);
+  //console.log("Updated User: ", user);
 
   res.send(`<H1>You are verified</H1>`);
 });
@@ -212,7 +212,7 @@ exports.forgetPassword = catchAsync(async (req, res, next) => {
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
     await user.save({ validateBeforeSave: false });
-    console.log(err);
+    //console.log(err);
     return next(
       new AppError(
         500,

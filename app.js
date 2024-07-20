@@ -1,8 +1,37 @@
 const express = require("express");
-
+const helmet = require("helmet")
 const cors = require("cors");
+//const { xss } = require('express-xss-sanitizer');
+const mongoSanitize = require('express-mongo-sanitize')
+const {rateLimit} = require('express-rate-limit')
+const hpp = require('hpp')
 const app = express();
+
 app.use(cors());
+app.use(helmet())
+// app.use(xss())
+app.use(mongoSanitize())
+app.use(
+  hpp({
+    whitelist: [
+      'duration',
+      'ratingsQuantity',
+      'ratingsAverage',
+      'maxGroupSize',
+      'difficulty',
+      'price',
+    ],
+  })
+);
+
+
+const limiter = rateLimit({
+  //*this is used to limit the no of reqs from a same ip address in order to overcome brut froce attacks
+  max: 90, //*max no of reqs windowMs time
+  windowMs: 60 * 60 * 1000, //*no of reqs per this time here we have given 1hr so for every 1hr the limiter is resetted
+  message: 'To many reqs from this IP,please try again after one hour',
+});
+app.use('/api', limiter);
 
 const userRouter = require("./routes/usersRouter");
 const postsRouter = require("./routes/postsRouter");
@@ -26,7 +55,7 @@ socketInit()
 
 
 app.all("*", (req, res, next) => {
-  console.log("care");
+  //console.log("care");
   const err = new AppError(404, `cant find ${req.originalUrl} on this page`);
   next(err);
 });

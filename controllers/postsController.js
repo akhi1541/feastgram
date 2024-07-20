@@ -122,7 +122,7 @@ exports.getPost = catchAsync(async (req, res, next) => {
     },
   ]);
 
-  console.log(post[0]?.savedByUsers);
+  //console.log(post[0]?.savedByUsers);
 
   if (!post || post.length === 0) {
     return res.status(404).json({
@@ -141,11 +141,11 @@ exports.getPost = catchAsync(async (req, res, next) => {
 
 exports.createPost = catchAsync(async (req, res) => {
 
-    console.log(req.body);
+    //console.log(req.body);
     const { title, image, chefId } = req.body;
     const recipeData = JSON.parse(title);
-    console.log(recipeData);
-    console.log(image);
+    //console.log(recipeData);
+    //console.log(image);
     const createdPost = await PostModel.create({
       ...recipeData,
       image,
@@ -177,15 +177,16 @@ exports.updatePost = catchAsync(async (req, res, next) => {
 
 exports.deletePost = catchAsync(async (req, res, next) => {
   const id = req.params.id;
-  console.log(id)
+  //console.log(id)
   if (!id) {
     return res.status(400).json({
       message: "userID is not found",
     });
   }
+    await SavedPostModel.deleteOne({recipeId: id})
   
   const userPost = await PostModel.findByIdAndDelete({ _id: id });
-  console.log(userPost)
+  //console.log(userPost)
   res.status(200).json({
     data: userPost,
     status: "success",
@@ -194,7 +195,7 @@ exports.deletePost = catchAsync(async (req, res, next) => {
 
 exports.getUserPosts = catchAsync(async (req, res, next) => {
   const id = req.params.id;
-  console.log(id);
+  //console.log(id);
   if (!id) {
     return res.status(400).json({
       message: "userID is not found",
@@ -362,7 +363,7 @@ exports.getPostLikes = catchAsync(async (req, res, next) => {
   ]);
 
   const likesCount = likesWithUserNames.length;
-  console.log(likesWithUserNames);
+  //console.log(likesWithUserNames);
 
   res.status(200).json({
     data: likesWithUserNames,
@@ -442,7 +443,7 @@ exports.savePost = catchAsync(async (req, res) => {
 exports.getSavedPosts = catchAsync(async (req, res) => {
   const id = req.params.id;
   if (!id) {
-    console.log("entered into if");
+    //console.log("entered into if");
     return res.status(400).json({
       message: "userID is not found",
     });
@@ -491,7 +492,7 @@ exports.getUserSavedPosts = catchAsync(async (req, res) => {
       path: "recipeId",
       select: { _id: 1, image: 1 }, // Select only _id and image from recipeId
     });
-    console.log(savedPosts);
+    //console.log(savedPosts);
 
     res.status(200).json({
       data: savedPosts,
@@ -505,11 +506,11 @@ exports.getUserSavedPosts = catchAsync(async (req, res) => {
 
 exports.getUserDetails = catchAsync(async (req, res) => {
   const name = req.params.name;
-  console.log(name)
+  //console.log(name)
   const usersData = await UserModel.find(
     { name: { $regex: name, $options: 'i' } },
     '_id name profilePicture' // Project only _id and name fields
   );
-  console.log('regw',usersData)
+  //console.log('regw',usersData)
   res.json(usersData);
 })
