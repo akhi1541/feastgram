@@ -43,22 +43,20 @@ exports.getMessages = catchAsync(async (req, res,next) => {
         }
       },
       {
-        $group: {
-          _id: null,
-          users: {
-            $addToSet: {
-              receiverId: "$receiverId"
-            }
-          }
+        $sort: {
+          timeStamp: -1
         }
       },
       {
-        $unwind: "$users"
+        $group: {
+          _id: "$receiverId",
+          latestMessage: { $first: "$$ROOT" }
+        }
       },
       {
         $lookup: {
           from: "users", // Name of your users collection
-          localField: "users.receiverId",
+          localField: "_id",
           foreignField: "_id",
           as: "userDetails"
         }
@@ -69,13 +67,19 @@ exports.getMessages = catchAsync(async (req, res,next) => {
       {
         $project: {
           _id: 0,
-          receiverId: "$users.receiverId",
+          receiverId: "$_id",
           name: "$userDetails.name",
-          profilePicture: "$userDetails.profilePicture"
+          profilePicture: "$userDetails.profilePicture",
+          latestMessage: "$latestMessage.message",
+          latestMessageTimestamp: "$latestMessage.timeStamp"
         }
+      },
+      {
+        $sort: { latestMessageTimestamp: -1 } // Optional: Sort by latest message timestamp
       }
     ]);
-  
+    
     // Sending response
     res.json(communicatedUsers);
+    
   });

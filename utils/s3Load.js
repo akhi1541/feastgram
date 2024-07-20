@@ -21,12 +21,12 @@ const uploadToS3Middleware = (req, res, next) => {
     if (err) {
       return res.status(400).send("Error uploading file");
     }
-    console.log(req);
+    //console.log(req);
 
     const file = req.file;
     const id = req.body.chefId
     const filename = req.body.fileName
-    console.log(id)
+    //console.log(id)
     if (!file) {
       if(req.body.type){
         return next()

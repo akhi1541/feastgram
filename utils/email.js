@@ -21,7 +21,7 @@ const sendEmail = async (options) => {
     //html: we can even send html to email
   };
   //3 send the   
-  console.log(mailOptions);
+  //console.log(mailOptions);
   await transpoter.sendMail(mailOptions);
 };
 

@@ -39,7 +39,7 @@ router.patch(
 );
 
 router.get("/testing", authController.protect, (req, res, next) => {
-  console.log(req.headers.jwt);
+  //console.log(req.headers.jwt);
   res.send("token is verified");
 });
 

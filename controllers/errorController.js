@@ -18,6 +18,7 @@ const sendErrDev = (err, res) => {
 const sendErrProd = (err, res) => {
   //*operational errors are trusted errors so send them to the client
   if (err.isOperational) {
+    console.log(err)
     res.status(err.statusCode).json({
       status: err.status,
       message: err.message,
@@ -40,7 +41,7 @@ const handelCastErrorDb = (err) => {
 };
 const handleDuplicateFieldsDB = (err) => {
   const value = err.message.match(/(["'])(\\?.)*?\1/)[0];
-  // console.log(value)
+  console.log(value)
   const message = `Duplicate field value: ${value}. Please use another value!`;
   return new AppError(400, message);
 };
@@ -58,21 +59,22 @@ const handelTokenExpiredError = () => {
 };
 //exporting error controller
 module.exports = (err, req, res, next) => {
-  // console.log(err)
+  console.log(err)
   err.status = err.status || 'error';
   err.statusCode = err.statusCode || 500;
 
   if (process.env.NODE_ENV === 'development') {
     sendErrDev(err, res);
   } else if (process.env.NODE_ENV.trim() === 'production') {
-    let error = { ...err };
+    let error = err ;
+    console.log(err);
     //*mongo db gives 3 errors cast,duplicate,validation but there is no need of showing these errors to the client
     if (err.name === 'CastError') {
       //*for cast errors any improper id given in parameter
       error = handelCastErrorDb(error);
     }
     if (err.code === 11000) {
-      // console.log(err.message)
+      console.log(err.message)
       error = handleDuplicateFieldsDB(err);
     }
     if (err.name === 'ValidationError') {
