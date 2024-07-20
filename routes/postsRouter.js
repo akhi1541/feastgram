@@ -21,7 +21,7 @@ router.get("/chat-list/:name", postsController.getUserDetails)
 
 router
   .route("/post/:id")
-  .delete(postsController.deletePost)
+  .delete(authController.protect,postsController.deletePost)
   .get(authController.protect, postsController.getPost)
   .patch(authController.protect, postsController.updatePost);
 router

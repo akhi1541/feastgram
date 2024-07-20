@@ -58,7 +58,6 @@ exports.signUpController = catchAsync(async (req, res, next) => {
       </h2>`,
   });
   createSendToken(newUser, 200, "user created sucesfully", res);
-
 });
 
 exports.login = catchAsync(async (req, res, next) => {
@@ -197,7 +196,7 @@ exports.forgetPassword = catchAsync(async (req, res, next) => {
   const resetToken = user.passwordResetTokenGenerate();
   await user.save({ validateBeforeSave: false }); //this will  turn off  all the validators which we have declared in schema for password to be required and a lo
   const resetUrl = `http://localhost:4200/resetPage/${resetToken}`;
-  const message = `this is your reset password url plese click this to  change password ${resetUrl}.If you remember the password just ignore this mail`;
+  const message = `this is your reset password url plese click this to  change password ${resetUrl} .This URL is valid for 15 Min.If you remember the password just ignore this mail`;
   //4)send it back to the user email to reset password
   try {
     await mailservice({
@@ -207,7 +206,7 @@ exports.forgetPassword = catchAsync(async (req, res, next) => {
     });
     res.status(200).json({
       status: "sucess",
-      message: "token has sent to email sucessfully",
+      message: "Reset Email has been sent!",
     });
   } catch (err) {
     user.passwordResetToken = undefined;
@@ -230,11 +229,18 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
 
   const user = await Users.findOne({
     passwordResetToken: token,
-    passwordResetExpires: { $gt: Date.now() },
   });
+  if (user?.passwordResetExpires < Date.now()) {
+    return next(new AppError(400, "Token is expired. Kindly revalidate"));
+  }
 
   if (!user) {
-    return next(new AppError("Token is invalid or expired", 400));
+    return next(new AppError(400, "Token is invalid. Kindly revalidate"));
+  }
+  if (req.body.password !== req.body.passwordConfirm) {
+    return next(
+      new AppError(400, "Password and Confirm Password must be same")
+    );
   }
 
   user.password = req.body.password;
@@ -243,15 +249,20 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   user.passwordResetExpires = undefined;
   await user.save();
 
-  createSendToken(user, 200, "Password reset successful", res);
+  createSendToken(
+    user,
+    200,
+    "Password reset successful redirecting to login",
+    res
+  );
 });
 
 exports.updatePassword = catchAsync(async (req, res, next) => {
   //1 get the user form the database
-  const user = await Users.findById(req.user._id).select("+password");
+  const user = await Users.findById(req.body.id).select("+password");
   //*here as the user is already already logged in we need not check the user exists or  not
   //2 check if posted password is correct
-  if (!(await user.correctPassword(req.body.password, user.password))) {
+  if (!(await user.correctPassword(req.body.currPassword, user.password))) {
     return next(
       new AppError(
         403,
@@ -260,10 +271,20 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
     );
   }
   //3 update the password
-  user.password = req.body.newPassword;
-  user.passwordConfirm = req.body.newPasswordConfirm;
+  if (req.body.password !== req.body.passwordConfirm) {
+    return next(
+      new AppError(400, "Password and Confirm Password must be same")
+    );
+  }
+  user.password = req.body.password;
+  user.passwordConfirm = req.body.passwordConfirm;
   await user.save();
   //4 Login user,send jwt
 
-  createSendToken(user, 200, "password updated sucessfull", res);
+  createSendToken(
+    user,
+    200,
+    "password updated sucessfull! redirecting to login",
+    res
+  );
 });

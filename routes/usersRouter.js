@@ -11,6 +11,7 @@ router.post("/signup", authController.signUpController);
 router.post("/login", authController.login);
 router.post('/forgetPassword', authController.forgetPassword);
 router.post('/resetPassword', authController.resetPassword);
+router.post('/updatePassword', authController.updatePassword);
 
 // router.get('/mailVerification/:userId',authContorller.emailVerification)
 router.get("/mailVerification/:userId",authController.emailVerification)
