@@ -12,25 +12,15 @@ exports.getMessages = catchAsync(async (req, res,next) => {
         { senderId: receiverId, receiverId: senderId }
       ]
     })
-    .populate({
-      path: 'receiverId',
-      select: 'name profilePicture' // Select fields from User schema
-    })
-    .populate({
-      path: 'senderId',
-      select: 'name profilePicture' // Select fields from User schema
-    });
 
     const formattedMessages = messages.map(msg => ({
         senderId: {
           id: msg.senderId._id,
           name: msg.senderId.name,
-          profilePicture: msg.senderId.profilePicture
         },
         receiverId: {
           id: msg.receiverId._id,
           name: msg.receiverId.name,
-          profilePicture: msg.receiverId.profilePicture
         },
         message: msg.message,
         timeStamp: msg.timeStamp,
