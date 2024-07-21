@@ -51,7 +51,7 @@ app.get("/", (req, res) => {
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/posts", postsRouter);
 app.use("/api/v1/chats", chatsRouter);
-socketInit()
+// socketInit()
 
 
 app.all("*", (req, res, next) => {
