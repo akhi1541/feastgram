@@ -83,3 +83,12 @@ exports.getMessages = catchAsync(async (req, res,next) => {
     res.json(communicatedUsers);
     
   });
+
+  exports.createMessage = catchAsync(async (req, res) => {
+    const msg = await ChatModel.create(req.body)
+    res.status(201).json({
+      message: 'stored',
+      status: 'success'
+    })
+
+  })
