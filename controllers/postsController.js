@@ -107,7 +107,7 @@ exports.getPost = catchAsync(async (req, res, next) => {
         _id: 1,
         title: 1,
         name: "$postedBy.name",
-        profilePic:"$postedBy.profilePicture",
+        profilePic: "$postedBy.profilePicture",
         description: 1,
         ingredients: 1,
         instructions: 1,
