@@ -409,6 +409,7 @@ exports.getComments = catchAsync(async (req, res) => {
           comment: 1, // Include the comment's text
           user: "$userData.name", // Include the user data
           profilePicture: "$userData.profilePicture", // Include the user data
+          userId: "$userData._id",
           createdAt: 1,
         },
       },
