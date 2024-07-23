@@ -107,6 +107,7 @@ exports.getPost = catchAsync(async (req, res, next) => {
         _id: 1,
         title: 1,
         name: "$postedBy.name",
+        profilePic:"$postedBy.profilePicture",
         description: 1,
         ingredients: 1,
         instructions: 1,
@@ -292,6 +293,7 @@ exports.getPosts = catchAsync(async (req, res, next) => {
         commentsCount: { $first: "$commentsCount" },
       },
     },
+    { $sort: { createdAt: -1 } }, 
     { $skip: skip },
     { $limit: limit },
   ]);

@@ -21,8 +21,8 @@ const userSchema = new mongoose.Schema({
     type: String,
     default:
       this.gender === "Male"
-        ? "https://akhi-data-dump.s3.ap-south-1.amazonaws.com/1718899953028_men.jpeg"
-        : "https://akhi-data-dump.s3.ap-south-1.amazonaws.com/1718900201783_women.jpg",
+        ? "https://akhi-data-dump.s3.ap-south-1.amazonaws.com/1718900201783_women.jpg"
+        :"https://akhi-data-dump.s3.ap-south-1.amazonaws.com/1718899953028_men.jpeg",
   },
   email: {
     type: String,
