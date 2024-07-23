@@ -1,13 +1,14 @@
 const http = require("http");
-const socketIo = require("socket.io");
-const server = http.createServer().listen(3001);
-
-const io = socketIo(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
-  },
-});
+const app = require("../app")
+const server = http.createServer(app);
+const { Server } = require("socket.io");
+const io = new Server(server);
+// const io = socketIo(server, {
+//   cors: {
+//     origin: "*",
+//     methods: ["GET", "POST"],
+//   },
+// });
 const ChatModel = require("../models/chatModel");
 const UsersModel = require("../models/usersModel");
 const catchAsync = require("./catchAsync");

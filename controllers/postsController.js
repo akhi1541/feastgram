@@ -107,6 +107,7 @@ exports.getPost = catchAsync(async (req, res, next) => {
         _id: 1,
         title: 1,
         name: "$postedBy.name",
+        profilePic:"$postedBy.profilePicture",
         description: 1,
         ingredients: 1,
         instructions: 1,
@@ -292,6 +293,7 @@ exports.getPosts = catchAsync(async (req, res, next) => {
         commentsCount: { $first: "$commentsCount" },
       },
     },
+    { $sort: { createdAt: -1 } }, 
     { $skip: skip },
     { $limit: limit },
   ]);
@@ -441,46 +443,42 @@ exports.savePost = catchAsync(async (req, res) => {
 });
 
 exports.getSavedPosts = catchAsync(async (req, res) => {
-  const id = req.params.id;
-  if (!id) {
-    //console.log("entered into if");
-    return res.status(400).json({
-      message: "userID is not found",
-    });
-  }
+  const userId = new mongoose.Types.ObjectId(req.params.userId);
 
-  let savedPosts = await SavedPostModel.aggregate([
+  const savedPosts = await SavedPostModel.aggregate([
+    { $match: { userId } },
     {
       $lookup: {
-        from: "recipes",
-        localField: "recipeId",
-        foreignField: "_id",
-        as: "recipeDetails",
+        from: 'Recipe',
+        localField: 'recipeId',
+        foreignField: '_id',
+        as: 'recipeDetails',
       },
     },
+    { $unwind: '$recipeDetails' },
     {
-      $unwind: "$recipeDetails",
+      $lookup: {
+        from: 'Users',
+        localField: 'recipeDetails.chefId',
+        foreignField: '_id',
+        as: 'chefDetails',
+      },
     },
+    { $unwind: '$chefDetails' },
     {
       $project: {
         _id: 1,
-        userId: 1,
-        "recipeDetails._id": 1,
-        "recipeDetails.title": 1,
-        "recipeDetails.description": 1,
-        "recipeDetails.ingredients": 1,
-        "recipeDetails.instructions": 1,
-        "recipeDetails.image": 1,
-        "recipeDetails.chefId": 1,
-        "recipeDetails.createdAt": 1,
-        "recipeDetails.dietType": 1,
+        recipeId: '$recipeDetails._id',
+        image: '$recipeDetails.image',
+        chefName: '$chefDetails.name',
+        chefProfilePicture: '$chefDetails.profilePicture',
       },
     },
   ]);
-  res.json({
-    status: "success",
+
+  res.status(200).json({
     data: savedPosts,
-    message: "Saved posts retrieved successfully",
+    status: 'success',
   });
 });
 

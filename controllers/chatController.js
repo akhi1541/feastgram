@@ -33,13 +33,16 @@ exports.getMessages = catchAsync(async (req, res,next) => {
 
 
   exports.getCommunicatedUsers = catchAsync(async (req, res) => {
-    const senderId = req.params.senderId;
+    const userId = new mongoose.Types.ObjectId(req.params.senderId);
   
     // Aggregation pipeline
     const communicatedUsers = await ChatModel.aggregate([
       {
         $match: {
-          senderId: new mongoose.Types.ObjectId(senderId)
+          $or: [
+            { senderId: userId },
+            { receiverId: userId }
+          ]
         }
       },
       {
@@ -49,7 +52,13 @@ exports.getMessages = catchAsync(async (req, res,next) => {
       },
       {
         $group: {
-          _id: "$receiverId",
+          _id: {
+            $cond: [
+              { $eq: ["$senderId", userId] },
+              "$receiverId",
+              "$senderId"
+            ]
+          },
           latestMessage: { $first: "$$ROOT" }
         }
       },
@@ -67,7 +76,7 @@ exports.getMessages = catchAsync(async (req, res,next) => {
       {
         $project: {
           _id: 0,
-          receiverId: "$_id",
+          userId: "$_id",
           name: "$userDetails.name",
           profilePicture: "$userDetails.profilePicture",
           latestMessage: "$latestMessage.message",
@@ -78,8 +87,8 @@ exports.getMessages = catchAsync(async (req, res,next) => {
         $sort: { latestMessageTimestamp: -1 } // Optional: Sort by latest message timestamp
       }
     ]);
-    
+  
     // Sending response
     res.json(communicatedUsers);
-    
   });
+  
