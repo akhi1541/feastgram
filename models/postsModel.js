@@ -20,7 +20,7 @@ const recipeSchema = new Schema({
   },
   chefId: {
     type: Schema.Types.ObjectId,
-    ref: "Users", // Assuming you have a User model defined
+    ref: "Users", 
     required: true,
   },
   createdAt: {
@@ -29,8 +29,7 @@ const recipeSchema = new Schema({
   },
   dietType: {
     type: String,
-    enum: ["VEG", "NONVEG", "EGGY"],
-    required: true,
+    enum: ["VEG", "NONVEG", "EGGY"]
   },
 });
 
