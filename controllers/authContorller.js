@@ -131,7 +131,7 @@ exports.protect = catchAsync(async (req, res, next) => {
 exports.getProfileInfo = catchAsync(async (req, res) => {
   const id = req.params.id;
   const details = await Users.findById(id).select(
-    "_id profilePicture email name bio mailVerified"
+    "_id profilePicture email name bio mailVerified friends"
   );
 
   if (!details) {

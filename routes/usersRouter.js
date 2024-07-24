@@ -20,7 +20,7 @@ router.get(
   authController.protect,
   friendsController.getAllFriends
 );
-router.patch(
+router.post(
   "/addOrRemoveFrnd",
   authController.protect,
   friendsController.addOrRemoveFriend
