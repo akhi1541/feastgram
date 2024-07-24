@@ -4,15 +4,31 @@ const ObjectId = mongoose.Types.ObjectId;
 exports.getAllFriends = async (req, res, next) => {
   try {
     const user = await userModel.findById(req.params.id)
-      .populate("friends", ['name','email'])
+      .populate({
+        path: 'friends',
+        select: 'name profilePicture', 
+        options: { 
+          fields: { _id: 1, name: 1, profilePicture:1 } 
+        }
+      })
       .exec();
-    res.json(user);
+      
+    // Extracting friend data to include only 'name' and 'id'
+    const friends = user.friends.map(friend => ({
+      id: friend._id,
+      name: friend.name,
+      profilePic: friend.profilePicture
+    }));
+    
+    res.json(friends);
   } catch (error) {
     res.status(500).send(error);
   }
 };
 
+
 exports.addOrRemoveFriend = async (req, res, next) => {
+  console.log(req.body);
   const { userId, friendId } = req.body;
 
   // Ensure userId and friendId are not the same
@@ -23,33 +39,46 @@ exports.addOrRemoveFriend = async (req, res, next) => {
     });
   }
 
-  try {
-    const user = await userModel.findOne({ _id: userId });
+  
+  if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(friendId)) {
+    return res.status(400).json({
+      status: "failed",
+      message: "Invalid user ID or friend ID",
+    });
+  }
 
-    if (!user) {
+  try {
+    const friend = await userModel.findById(friendId);
+
+    if (!friend) {
       return res.status(404).json({
         status: "failed",
-        message: "User not found",
+        message: "Friend not found",
       });
     }
 
+    const userObjectId = new mongoose.Types.ObjectId(userId); // Correctly instantiate ObjectId
     let updatedMessage = "";
 
-    if (!user.friends.includes(friendId)) {
-      user.friends.push(friendId);
+    console.log("Current friends list:", friend.friends);
+
+    if (!friend.friends.some((id) => id.equals(userObjectId))) {
+      friend.friends.push(userObjectId);
       updatedMessage = "followed";
     } else {
-      // Remove the friendId from the array
-      user.friends = user.friends.filter((friend) => friend !== friendId);
+      // Remove the userId from the array
+      friend.friends = friend.friends.filter((id) => !id.equals(userObjectId));
       updatedMessage = "unfollowed";
     }
 
-    // Save the user with the updated friends array
-    await user.save();
+    // Save the friend with the updated friends array
+    await friend.save();
+
+    console.log("Updated friends list:", friend.friends);
 
     res.status(200).json({
-      data: user,
-      friendsCount: user.friends.length,
+      data: friend,
+      friendsCount: friend.friends.length,
       status: "success",
       message: updatedMessage,
     });
@@ -57,4 +86,3 @@ exports.addOrRemoveFriend = async (req, res, next) => {
     next(error);
   }
 };
-
